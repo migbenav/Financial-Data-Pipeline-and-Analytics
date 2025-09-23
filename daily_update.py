@@ -11,10 +11,10 @@ cryptos = ['BTC', 'ETH']
 
 # Run the daily update for stocks
 print("Starting daily update for stocks...")
-load_data(AlphaVantageFetcher, stocks, asset_type='stocks')
+load_data(AlphaVantageFetcher, stocks)
 
 # Run the daily update for cryptos
 print("Starting daily update for cryptos...")
-load_data(YahooFinanceFetcher, cryptos, asset_type='crypto')
+load_data(YahooFinanceFetcher, cryptos)
 
 print("Daily update complete.")
