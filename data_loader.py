@@ -1,20 +1,17 @@
 # data_loader.py
+
 import psycopg2
 import pandas as pd
 from dotenv import load_dotenv
 import os
 from psycopg2.extras import execute_values
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+from typing import Optional
+from api_fetchers import AlphaVantageFetcher, YahooFinanceFetcher  
 
-# Import the new fetcher classes
-from api_fetchers import AlphaVantageFetcher, YahooFinanceFetcher
-
-# Load environment variables
 load_dotenv()
 
-# --- All other functions (init_connection, get_data, get_latest_date) remain the same ---
 def init_connection():
-    """Initializes a connection to the Supabase database."""
     try:
         db_url = os.environ.get('SUPABASE_DB_URL')
         return psycopg2.connect(db_url)
@@ -23,7 +20,6 @@ def init_connection():
         return None
 
 def get_data() -> pd.DataFrame:
-    """Fetches all data from the stock_prices table."""
     conn = init_connection()
     if conn is None:
         return pd.DataFrame()
@@ -39,8 +35,7 @@ def get_data() -> pd.DataFrame:
         if conn:
             conn.close()
 
-def get_latest_date(symbol: str) -> datetime.date | None:
-    """Fetches the latest timestamp for a given symbol from the database."""
+def get_latest_date(symbol: str) -> Optional[datetime.date]:
     conn = init_connection()
     if conn is None:
         return None
@@ -59,44 +54,52 @@ def get_latest_date(symbol: str) -> datetime.date | None:
         if conn:
             conn.close()
 
-
 def load_data(
     fetcher_class,
     assets: list,
-    asset_type: str,
-    historical: bool = False
+    historical: bool = False  # New parameter to force a full historical load
 ):
     """
     Loads data for a list of assets using a specified fetcher class.
-    Decides between full historical load and daily update.
     """
     conn = init_connection()
     if conn is None:
         return
 
     for symbol in assets:
-        latest_date = get_latest_date(symbol)
-
-        if latest_date:
-            start_date = latest_date + timedelta(days=1)
-            end_date = datetime.now().date()
-            print(f"Updating data for {symbol} from {start_date} to {end_date}...")
-        else:
-            start_date, end_date = None, None
+        if historical:
+            start_date = date(2005, 1, 1)  # Force full historical load
+            end_date = None
             print(f"Performing initial historical load for {symbol}...")
-
-        if fetcher_class is AlphaVantageFetcher:
-            fetcher = fetcher_class(symbol, os.environ.get('ALPHA_VANTAGE_API_KEY'))
-            df = fetcher.fetch_data(asset_type, historical=not latest_date)
         else:
-            fetcher = fetcher_class(symbol)
-            df = fetcher.fetch_data(start_date=start_date, end_date=end_date)
+            latest_date = get_latest_date(symbol)
+            if latest_date:
+                start_date = latest_date + timedelta(days=1)
+                end_date = datetime.now().date()
+                print(f"Updating data for {symbol} from {start_date} to {end_date}...")
+            else:
+                start_date = None
+                end_date = None
+                print(f"Performing initial historical load for {symbol}...")
 
+        print(f"Start Date : {start_date}, End Date : {end_date}")
+
+        # Use the correct fetcher based on the class
+        fetcher = fetcher_class(symbol)
+
+        # Call the fetcher's method
+        if isinstance(fetcher, AlphaVantageFetcher):
+            df = fetcher.fetch_data(asset_type='stocks', historical=(start_date is None))
+        elif isinstance(fetcher, YahooFinanceFetcher):
+            df = fetcher.fetch_data(start_date=start_date, end_date=end_date)
+        else:
+            print(f"No fetcher configured for {type(fetcher)}.")
+            continue
+        
         if df.empty:
             print(f"No new data retrieved for {symbol}. Skipping insertion.")
             continue
 
-        # --- CHANGE 1: Add load_timestamp to the data tuple ---
         data_to_insert = [
             (
                 row['timestamp'],
@@ -106,15 +109,14 @@ def load_data(
                 row['low_price'],
                 row['close_price'],
                 row['volume'],
-                datetime.now() # New: The current timestamp
+                datetime.now()
             )
             for _, row in df.iterrows()
         ]
 
         try:
             with conn.cursor() as cur:
-                # --- CHANGE 2: Update the INSERT and DO UPDATE clauses ---
-                insert_query = """
+                execute_values(cur, """
                     INSERT INTO stock_prices (timestamp, symbol, open_price, high_price, low_price, close_price, volume, load_timestamp)
                     VALUES %s
                     ON CONFLICT (timestamp, symbol) DO UPDATE SET
@@ -124,8 +126,7 @@ def load_data(
                         close_price = EXCLUDED.close_price,
                         volume = EXCLUDED.volume,
                         load_timestamp = EXCLUDED.load_timestamp;
-                """
-                execute_values(cur, insert_query, data_to_insert)
+                """, data_to_insert)
                 conn.commit()
             print(f"Successfully inserted/updated {len(data_to_insert)} rows for {symbol}.")
         except Exception as e:

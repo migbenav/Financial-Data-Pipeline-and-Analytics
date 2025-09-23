@@ -12,16 +12,15 @@ and only fetches new data.
 from data_loader import load_data
 from api_fetchers import AlphaVantageFetcher, YahooFinanceFetcher
 
-# Define the assets
 stocks = ['MSFT', 'KO', 'JPM', 'GLD', 'SLV']
 cryptos = ['BTC', 'ETH']
 
-# Load full historical stock data using Alpha Vantage
-print("Starting initial historical load for stocks...")
-load_data(AlphaVantageFetcher, stocks, asset_type='stocks', historical=True)
+# Load full historical stock data
+#print("Starting initial historical load for stocks...")
+#load_data(AlphaVantageFetcher, stocks, historical=True)
 
-# Load full historical crypto data using Yahoo Finance
+# Load full historical crypto data
 print("Starting initial historical load for cryptos...")
-load_data(YahooFinanceFetcher, cryptos, asset_type='crypto', historical=True)
+load_data(YahooFinanceFetcher, cryptos, historical=True)
 
 print("Historical data load complete.")
