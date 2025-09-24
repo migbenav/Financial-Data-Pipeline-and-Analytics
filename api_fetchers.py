@@ -57,6 +57,7 @@ class AlphaVantageFetcher:
             })
         return pd.DataFrame(records)
 
+
 class YahooFinanceFetcher:
     """Fetches historical data from Yahoo Finance."""
     def __init__(self, symbol: str):
@@ -88,3 +89,61 @@ class YahooFinanceFetcher:
         except Exception as e:
             print(f"Error fetching data for {self.symbol}: {e}")
             return pd.DataFrame()
+
+
+class CoinMarketCapFetcher:
+    """Fetches real-time crypto data from the CoinMarketCap API."""
+    
+    def __init__(self, symbol: str, api_key: str):
+        # CMC symbols are typically the base currency (e.g., BTC, not BTC-USD)
+        self.symbol = symbol.replace('-USD', '') 
+        self.original_symbol = symbol # Keep the original symbol for DB consistency
+        self.api_key = api_key
+        self.base_url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+
+    def fetch_data(self) -> pd.DataFrame:
+        """Fetches the latest snapshot price for the symbol."""
+        if not self.api_key:
+            print(f"Warning: CMC_API_KEY not configured. Skipping {self.original_symbol}.")
+            return pd.DataFrame()
+            
+        headers = {
+            'Accepts': 'application/json',
+            'X-CMC_PRO_API_KEY': self.api_key,
+        }
+        parameters = {
+            'symbol': self.symbol,
+            'convert': 'USD'
+        }
+
+        try:
+            response = requests.get(self.base_url, headers=headers, params=parameters)
+            response.raise_for_status() # Raise an exception for bad status codes
+            data = response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching data from CoinMarketCap for {self.original_symbol}: {e}")
+            return pd.DataFrame()
+            
+        # Check if symbol exists in data
+        if self.symbol not in data['data']:
+            print(f"Error: CoinMarketCap did not return data for {self.symbol}.")
+            return pd.DataFrame()
+
+        # Extract quote data
+        asset_data = data['data'][self.symbol]
+        quote = asset_data['quote']['USD']
+        price = quote['price']
+        timestamp = datetime.now()
+        
+        # Create a DataFrame for a single data point
+        records = [{
+            'timestamp': timestamp,
+            'symbol': self.original_symbol, # Use original symbol for DB
+            'open_price': price, # For a single snapshot, use price for OHLC
+            'high_price': price,
+            'low_price': price,
+            'close_price': price,
+            'volume': 0 # Volume data from CMC is complex, setting to 0 for simplicity
+        }]
+
+        return pd.DataFrame(records)

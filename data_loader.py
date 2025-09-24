@@ -7,14 +7,10 @@ import os
 from psycopg2.extras import execute_values
 from datetime import datetime, timedelta, date
 from typing import Optional
-from api_fetchers import AlphaVantageFetcher, YahooFinanceFetcher
+from api_fetchers import AlphaVantageFetcher, YahooFinanceFetcher, CoinMarketCapFetcher
 
 # This file must load the environment variables itself
 load_dotenv()
-
-# Print the loaded DB URL for verification
-print(f"URL de la base de datos cargada: {os.environ.get('SUPABASE_DB_URL')}")
-print(f"ALPHA_VANTAGE_API_KEY cargada: {os.environ.get('ALPHA_VANTAGE_API_KEY') is not None}")
 
 def init_connection():
     """Initializes a connection to the Supabase database."""
@@ -66,7 +62,9 @@ def get_latest_date(symbol: str) -> Optional[datetime.date]:
 def load_data(
     fetcher_class,
     assets: list,
-    historical: bool = False
+    historical: bool = False,
+    custom_start_date: Optional[date] = None, # NEW: Optional custom start date
+    custom_end_date: Optional[date] = None     # NEW: Optional custom end date
 ):
     """
     Loads data for a list of assets using a specified fetcher class.
@@ -76,13 +74,21 @@ def load_data(
         return
     
     alpha_vantage_api_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
+    coin_market_api_key = os.environ.get('COIN_MARKET_API_KEY')
 
     for symbol in assets:
-        if historical:
+        if custom_start_date:
+            # If a custom start date is provided, use it, and the custom end date if available
+            start_date = custom_start_date
+            end_date = custom_end_date if custom_end_date else datetime.now().date()
+            print(f"Custom load for {symbol} from {start_date} to {end_date}...")
+        elif historical:
+            # Historical load from 2005-01-01
             start_date = date(2005, 1, 1)
             end_date = None
             print(f"Performing initial historical load for {symbol}...")
         else:
+            # Incremental update based on latest DB record
             latest_date = get_latest_date(symbol)
             if latest_date:
                 start_date = latest_date + timedelta(days=1)
@@ -99,13 +105,29 @@ def load_data(
                 print("ALPHA_VANTAGE_API_KEY not found. Skipping Alpha Vantage assets.")
                 continue
             fetcher = fetcher_class(symbol, api_key=alpha_vantage_api_key)
+        elif fetcher_class == CoinMarketCapFetcher:
+            if not coin_market_api_key:
+                print("COIN_MARKET_API_KEY not found. Skipping CoinMarketCap assets.")
+                continue
+            fetcher = fetcher_class(symbol, api_key=coin_market_api_key)
         else:
             fetcher = fetcher_class(symbol)
 
         if isinstance(fetcher, AlphaVantageFetcher):
-            df = fetcher.fetch_data(asset_type='stocks', historical=(start_date is None))
+            # AlphaVantageFetcher uses 'full' for historical (start_date is date(2005, 1, 1))
+            # or 'compact' for the latest (start_date is latest_date + 1 day).
+            # The logic here is simplified: if start_date is the historical start, use 'full'.
+            # Note: custom_start_date will still result in an API call unless it's a small range
+            # that 'compact' can cover. For AlphaVantage, we'll maintain the historical flag logic
+            # for now, as it doesn't natively support range queries like Yahoo Finance.
+            is_full_historical = (start_date == date(2005, 1, 1)) and (not custom_start_date)
+            df = fetcher.fetch_data(asset_type='stocks', historical=is_full_historical)
         elif isinstance(fetcher, YahooFinanceFetcher):
+            # YahooFinanceFetcher supports start_date and end_date for range queries
             df = fetcher.fetch_data(start_date=start_date, end_date=end_date)
+        elif isinstance(fetcher, CoinMarketCapFetcher):
+            # CoinMarketCapFetcher only provides the latest snapshot, range is not supported
+            df = fetcher.fetch_data()
         else:
             print(f"No fetcher configured for {type(fetcher)}.")
             continue
