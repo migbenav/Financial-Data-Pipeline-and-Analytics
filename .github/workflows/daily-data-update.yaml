@@ -39,6 +39,7 @@ jobs:
         run: |
           echo "ALPHA_VANTAGE_API_KEY=${{ secrets.ALPHA_VANTAGE_API_KEY }}" >> .env
           echo "SUPABASE_DB_URL=${{ secrets.SUPABASE_DB_URL }}" >> .env
+          echo "COIN_MARKET_API_KEY=${{ secrets.COIN_MARKET_API_KEY }}" >> .env
 
       - name: Run daily data update
         run: python daily_update.py
