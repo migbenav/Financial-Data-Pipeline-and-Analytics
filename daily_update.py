@@ -3,8 +3,7 @@
 # with the most recent financial data.
 
 from data_loader import load_data
-from api_fetchers import AlphaVantageFetcher, CoinMarketCapFetcher
-
+from api_fetchers import AlphaVantageFetcher, YahooFinanceFetcher
 # Define the assets
 stocks = ['MSFT', 'KO', 'JPM', 'GLD', 'SLV']
 cryptos = ['BTC', 'ETH']
@@ -15,6 +14,6 @@ load_data(AlphaVantageFetcher, stocks)
 
 # Run the daily update for cryptos
 print("Starting daily update for cryptos...")
-load_data(CoinMarketCapFetcher, cryptos)
+load_data(YahooFinanceFetcher, cryptos, historical=False)
 
 print("Daily update complete.")

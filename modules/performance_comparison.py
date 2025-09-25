@@ -21,7 +21,7 @@ def show_page(df):
             font-weight: bold;
         }
         </style>
-        <h3 class="centered-title-small">Performance Comparison</h3>
+        <h3 class="centered-title-small">Asset Comparison</h3>
     """, unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #7f8c8d;'>Compare the cumulative performance and key metrics of multiple assets.</p>", unsafe_allow_html=True)
     st.markdown("---")

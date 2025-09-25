@@ -1,57 +1,65 @@
-# Financial Data Pipeline & Risk Analytics Dashboard
+# Data-Driven Financial Analysis Dashboard
+
+## 1. Executive Summary: Bridging Data and Investment Insights
+
+This project demonstrates a complete, end-to-end analytical workflow for financial data. The primary objective is to transform raw asset pricing data into actionable insights by calculating key **Risk and Performance metrics**.
+
+The solution features an automated data pipeline and a dynamic Streamlit dashboard, showcasing proficiency in data engineering, quantitative analysis, and data visualization to support strategic decision-making in asset comparison.
 
 ---
 
-### **1. Executive Summary: The Data-Driven Approach to Financial Analysis**
+## 2. The Business Problem: Quantifying Risk and Performance
 
-This project demonstrates a complete analytical workflow, from data ingestion to actionable insights. It addresses three core business questions by creating an automated data pipeline and a dynamic dashboard. By focusing on descriptive analytics, machine learning, and predictive modeling, the project showcases the skills required to transform raw market data into a powerful tool for strategic decision-making.
+Modern investors require systematic tools to compare assets beyond simple price charts. This project addresses the challenge of providing a clear, objective assessment of assets by focusing on two core questions:
 
----
-
-### **2. The Business Problem: Beyond Simple Price Analysis**
-
-Manual data analysis fails to capture the complexity and speed of modern financial markets. This project aims to solve three specific business challenges:
-
-* **Understanding Risk and Volatility**: How can we systematically compare the risk profiles of different asset types (e.g., tech stocks vs. traditional industry stocks)?
-* **Identifying Market Regimes**: Can we use data to objectively classify market conditions (e.g., high volatility, low volatility) and analyze asset performance within each regime?
-* **Predicting Market Movements**: Can we predict the probability of a key price movement (e.g., a stock breaking above its 20-day average) using technical indicators?
+1.  **Systematic Risk Comparison:** How can we objectively compare the **volatility** and **downside risk** (Max Drawdown) of different asset types (e.g., stocks vs. cryptocurrencies)?
+2.  **Performance Context:** How does the raw **Total Return** translate into **Annualized Performance** to allow for fair comparison across different timeframes?
 
 ---
 
-### **3. Methodology: From Data to Insight**
+## 3. Core Metrics: What We Calculate and Why
 
-This solution is a robust, end-to-end data pipeline designed to answer the business questions.
+The value of this dashboard lies in explaining complex financial concepts through clear metrics:
 
-1.  **Automated Data Ingestion**: A Python script automates the collection of financial data from the Alpha Vantage API. This process is orchestrated by **GitHub Actions** to run daily, ensuring the data is always up-to-date.
-2.  **Feature Engineering**: The raw data is enhanced with calculated features critical for analysis, such as moving averages (SMA), Relative Strength Index (RSI), and volatility metrics.
-3.  **Advanced Analytics**:
-    * **Descriptive Analytics**: The dashboard will display key risk metrics like annualized volatility and drawdowns, visualized to tell a clear story about an asset's risk profile.
-    * **Machine Learning**: A clustering algorithm will be applied to identify distinct market regimes based on historical data.
-    * **Predictive Modeling**: A classification model will be used to predict the probability of a stock's price exceeding its 20-day moving average, using engineered features as predictors.
-4.  **Interactive Dashboard**: The final application, built with **Streamlit** and connected to **Supabase**, will provide a user-friendly interface to visualize the results and explore the data.
+| Metric | Calculation | Interpretation & Why It Matters |
+| :--- | :--- | :--- |
+| **Annualized Volatility** | Standard Deviation of daily returns, scaled to 252 trading days. | **Risk Measure:** Quantifies the asset's price fluctuation (risk). Higher volatility means greater uncertainty and wider price swings. |
+| **Maximum Drawdown (Max DD)** | The largest peak-to-trough decline during a specific period. | **Downside Risk:** Measures the worst historical loss an investor would have suffered. Critical for assessing capital preservation. |
+| **Annualized Return** | Total return, normalized to a one-year period. | **Performance Measure:** Allows fair comparison between two assets held for different durations (e.g., a stock held for 18 months vs. a crypto held for 6 months). |
+| **Sharpe Ratio** | (Annualized Return - Risk-Free Rate) / Annualized Volatility. | **Risk-Adjusted Return:** Measures the return earned per unit of risk taken. A higher Sharpe Ratio is always desirable. |
 
 ---
 
-### **4. Skills and Technologies**
+## 4. Methodology: Data Pipeline (ETL)
 
-| **Skills** | **Technologies** |
+This solution is built upon a robust data pipeline designed for consistency and reliability.
+
+| Phase | Description | Technologies |
+| :--- | :--- | :--- |
+| **Data Ingestion** | Automated script collects daily historical pricing data for specified assets (stocks, crypto) from external financial APIs. | Python, Alpha Vantage API, Yahoo Finance API,  |
+| **Data Storage** | Raw and processed data is stored in a cloud-based PostgreSQL database. | Supabase (PostgreSQL) |
+| **Orchestration** | The data ingestion process is managed by a daily automated run. | GitHub Actions |
+| **Feature Engineering** | Raw closing prices are used to calculate daily returns, moving averages (SMA), and risk metrics. | Python (Pandas) |
+
+---
+
+## 5. Dashboard Structure & Navigation (Streamlit)
+
+The interactive dashboard is the final product, connected live to the PostgreSQL data pipeline.
+
+Use the sidebar on the left to navigate between the sections:
+
+* **Basic Dashboard:** View raw price charts, volume trends, and moving averages for individual asset selection.
+* **Risk Analysis:** Visualizes the key trade-off between **Volatility** and **Max Drawdown** across all assets, segmented into performance quadrants.
+* **Asset Comparison (Performance):** Tabular and graphical comparison of **Annualized Return** and **Risk Metrics** side-by-side for portfolio construction decisions.
+
+---
+
+## 6. Skills and Technologies
+
+| Domain | Technologies / Concepts |
 | :--- | :--- |
-| Data Engineering | Python, PostgreSQL, Supabase, GitHub Actions |
-| Financial Analysis | Volatility, Drawdowns, SMA, RSI |
-| Machine Learning | Clustering (K-means), Classification (Random Forest/Logistic Regression) |
-| Data Visualization | Streamlit, Plotly, Pandas |
-| Business Acumen | Identifying and addressing key business questions |
-
----
-
-### **5. Results and Recommendations**
-
-*(This section will be updated upon completion of the dashboard.)*
-
-The dashboard will present a clear, data-driven response to each business question. It will allow users to:
-
-* Compare the risk of different assets, identifying a potential portfolio for a specific risk tolerance.
-* Understand how an asset performs during different market conditions.
-* Access a predictive model's probability score for a bullish price movement.
-
-**Recommendations** will focus on potential project expansions, such as integrating alternative data sources or deploying more complex predictive models to enhance the analysis.
+| **Data Engineering** | Python, PostgreSQL, Supabase, GitHub Actions, ETL |
+| **Financial Analysis** | Volatility, Maximum Drawdown, Sharpe Ratio, Annualized Return |
+| **Data Visualization** | Streamlit, Plotly, Pandas |
+| **Project Management** | Problem Definition, Documentation (README), Version Control (Git) |

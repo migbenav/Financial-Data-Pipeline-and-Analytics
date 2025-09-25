@@ -37,8 +37,8 @@ def main():
     # NOTE: Using YahooFinanceFetcher for crypto backfill as it handles historical ranges well.
     cryptos = ['BTC', 'ETH'] 
 
-    START_DATE = date(2025, 9, 23)
-    END_DATE = date(2025, 9, 24)
+    START_DATE = date(2025, 9, 24)
+    END_DATE = date(2025, 9, 25)
 
     # --- Backfill for Stocks (using AlphaVantageFetcher) ---
     #print("Starting backfill for STOCKS using AlphaVantageFetcher...")
