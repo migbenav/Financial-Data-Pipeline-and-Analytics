@@ -17,6 +17,6 @@ def show_page():
     - **Overview:** An introduction to the dashboard's purpose and functionalities.
     - **Basic Dashboard:** Explore key metrics and interactive charts for individual assets.
     - **Risk Analysis:** Dive into financial risk metrics such as annualized volatility and maximum drawdown.
-    - **Asset Comparison (formerly Performance Comparison):** Compare the cumulative returns and key performance metrics of multiple selected assets.
+    - **Asset Comparison:** Compare the cumulative returns and key performance metrics of multiple selected assets.
     """)
     st.info("To get started, please select a page from the sidebar.")

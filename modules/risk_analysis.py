@@ -21,7 +21,6 @@ def show_page(df):
         <h3 class="centered-title-small">Financial Risk Analysis</h3>
     """, unsafe_allow_html=True)
 
-    st.markdown("<p style='text-align: center; color: #7f8c8d;'>Explore key risk metrics like annualized volatility and max drawdown for various assets.</p>", unsafe_allow_html=True)
     
     def calculate_risk_metrics(df):
         """Calculates annualized volatility, max drawdown, Sharpe Ratio, and other metrics for all assets."""
@@ -78,7 +77,7 @@ def show_page(df):
     metrics_df = metrics_df.reset_index().rename(columns={'index': 'Asset'})
     
     # Sort the table by Max Drawdown (from least to most risky)
-    metrics_df = metrics_df.sort_values(by='Max Drawdown', ascending=True)
+    metrics_df = metrics_df.sort_values(by='Max Drawdown', ascending=False)
 
     st.markdown("<p style='text-align: center; color: #7f8c8d;'>Explore key risk metrics like annualized volatility and max drawdown for various assets.</p>", unsafe_allow_html=True)
 
@@ -92,9 +91,10 @@ def show_page(df):
             - **VaR (95%):** Estimates the maximum daily loss that should not be exceeded 95% of the time.
             
             **Performance & Consistency Metrics (What you gain):**
+            - **Sharpe Ratio:** Measures the excess return per unit of volatility taken. **Higher is better.**
             - **Cumulative Return:** The total percentage gain or loss over the entire period analyzed.
             - **Winning Days %:** The percentage of trading days that resulted in a positive return (closing higher than the previous day).
-            - **Sharpe Ratio:** Measures the excess return per unit of volatility taken. **Higher is better.**
+            
     """)
 
     st.subheader("Asset Risk Comparison")
@@ -109,7 +109,7 @@ def show_page(df):
     display_df['Winning Days %'] = display_df['Winning Days %'].apply(lambda x: f"{x:,.2%}")
 
     # Reorder the columns for better display
-    display_df = display_df[['Asset', 'Max Drawdown', 'Volatility', 'Sharpe Ratio', 'Cumulative Return', 'VaR (95%)', 'Winning Days %']]
+    display_df = display_df[['Asset', 'Max Drawdown', 'Volatility', 'VaR (95%)', 'Sharpe Ratio', 'Cumulative Return',  'Winning Days %']]
     
     # Display the formatted DataFrame
     st.dataframe(
@@ -131,7 +131,7 @@ def show_page(df):
         y='Max Drawdown',
         color='Asset',
         size='Volatility',
-        hover_data={'Volatility': ':.2%', 'Max Drawdown': ':.2%', 'Sharpe Ratio': ':.2f', 'Cumulative Return': ':,.2%'},
+        hover_data={'Max Drawdown': ':.2%', 'Volatility': ':.2%', 'VaR (95%)': ':.2%', 'Sharpe Ratio': ':.2f', 'Cumulative Return': ':,.2%', 'Winning Days %': ':.2%'},
         title="Volatility vs. Max Drawdown by Asset"
     )
 
