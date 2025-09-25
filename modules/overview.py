@@ -18,7 +18,5 @@ def show_page():
     - **Basic Dashboard:** Explore key metrics and interactive charts for individual assets.
     - **Risk Analysis:** Dive into financial risk metrics such as annualized volatility and maximum drawdown.
     - **Asset Comparison (formerly Performance Comparison):** Compare the cumulative returns and key performance metrics of multiple selected assets.
-    - **Market Regimes:** Discover different market behaviors through advanced analysis (clustering results).
-    - **Predictive Modeling:** Use the classification model to estimate the probability of future price movements.
     """)
     st.info("To get started, please select a page from the sidebar.")
