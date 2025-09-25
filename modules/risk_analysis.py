@@ -137,14 +137,14 @@ def show_page(df):
         type="line",
         x0=avg_volatility, y0=drawdown_range[0],
         x1=avg_volatility, y1=drawdown_range[1],
-        line=dict(color="White", width=1, dash="dash"),
+        line=dict(color="#555555", width=1, dash="dash"),
         name="Average Volatility"
     )
     fig.add_shape(
         type="line",
         x0=volatility_range[0], y0=avg_drawdown,
         x1=volatility_range[1], y1=avg_drawdown,
-        line=dict(color="White", width=1, dash="dash"),
+        line=dict(color="#555555", width=1, dash="dash"),
         name="Average Drawdown"
     )
 
