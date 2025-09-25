@@ -51,6 +51,8 @@ This solution is built upon a robust data pipeline designed for consistency and 
 
 The interactive dashboard is the final product, connected live to the PostgreSQL data pipeline.
 
+[https://financial-data-pipeline-and-analytics.streamlit.app/](https://financial-data-pipeline-and-analytics.streamlit.app/)
+
 Use the sidebar on the left to navigate between the sections:
 
 * **Basic Dashboard:** View raw price charts, volume trends, and moving averages for individual asset selection.
