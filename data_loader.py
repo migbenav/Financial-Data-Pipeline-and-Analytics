@@ -42,31 +42,40 @@ from datetime import datetime, timedelta, date
 from typing import Optional, Type
 from api_fetchers import AlphaVantageFetcher, YahooFinanceFetcher, CoinMarketCapFetcher
 
-# Detect if the environment is Streamlit Cloud to manage secrets properly
+# We execute load_dotenv() immediately. This populates os.environ locally.
+load_dotenv() 
+
+# We detect if Streamlit is available for later access to st.secrets.
 try:
     import streamlit as st
     STREAMLIT_ENV = True
 except ImportError:
     STREAMLIT_ENV = False
 
-# Load environment variables conditionally (only in local environment)
-if not STREAMLIT_ENV:
-    load_dotenv()
     
 def get_secret(key: str) -> Optional[str]:
     """
     Purpose: Auxiliary function to retrieve a secret/environment variable.
-             Supports both local (.env via os.environ) and Streamlit Cloud (st.secrets) environments.
+             It prioritizes os.environ (local .env) over st.secrets (Cloud).
     Inputs (Inputs):
         - key (str): The name of the secret/environment variable.
     Outputs (Outputs): The secret value as a string, or None if not found.
     """
-    if STREAMLIT_ENV:
-        # Read from Streamlit's secrets dictionary
-        return st.secrets.get(key)
-    else:
-        # Fall back to standard OS environment (local .env)
-        return os.environ.get(key)
+    
+    # 1. CHECK OS.ENVIRON (Local .env priority)
+    # If the key is found here, it's either from the local .env file or a standard OS variable.
+    local_value = os.environ.get(key)
+    if local_value:
+        return local_value
+
+    # 2. CHECK STREAMLIT SECRETS (Cloud priority, only if not found locally)
+    if STREAMLIT_ENV and hasattr(st, 'secrets'):
+        # Check if Streamlit has the secret (this is where Cloud secrets live)
+        cloud_value = st.secrets.get(key)
+        if cloud_value:
+             return cloud_value
+
+    return None
 
 
 def init_connection():
