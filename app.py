@@ -8,7 +8,7 @@ from data_loader import get_data
 # --- APP CONFIGURATION ---
 # Load environment variables from .env file.
 # This ensures the app can find the database connection string.
-load_dotenv()
+#load_dotenv()
 
 # --- DATA LOADING ---
 # Use Streamlit's cache to load data only once.
