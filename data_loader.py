@@ -1,4 +1,37 @@
 # data_loader.py
+"""
+File: data_loader.py
+Function:
+    This file manages all database connection and data loading logic. It handles 
+    fetching data from external APIs and inserting/updating records in the database.
+    It includes robust logic to determine the appropriate start date for updates 
+    (latest date in DB, full historical, or custom date range). It also features 
+    dual environment compatibility for secrets management (local .env or Streamlit Cloud).
+
+Functions Contained:
+    - get_secret: Retrieves environment variables from local or Streamlit secrets.
+    - init_connection: Initializes the connection to the PostgreSQL database.
+    - get_data: Fetches all data from the stock_prices table.
+    - get_latest_date: Finds the latest recorded date for a given symbol.
+    - load_data: Main orchestration function for fetching and loading data.
+
+Function Descriptions:
+    - get_secret:
+        - Purpose: Auxiliary function to safely read environment variables/secrets.
+        - Related Elements: os, dotenv, streamlit.
+    - init_connection:
+        - Purpose: Primary function to establish database connection.
+        - Related Elements: psycopg2, get_secret.
+    - get_data:
+        - Purpose: Retrieves all historical data from the database.
+        - Related Elements: pandas.
+    - get_latest_date:
+        - Purpose: Utility function to find the most recent timestamp for an asset.
+        - Related Elements: psycopg2, date.
+    - load_data:
+        - Purpose: Main function for fetching and persisting data using various fetcher classes.
+        - Related Elements: AlphaVantageFetcher, YahooFinanceFetcher, CoinMarketCapFetcher, datetime.
+"""
 
 import psycopg2
 import pandas as pd
@@ -6,23 +39,60 @@ from dotenv import load_dotenv
 import os
 from psycopg2.extras import execute_values
 from datetime import datetime, timedelta, date
-from typing import Optional
+from typing import Optional, Type
 from api_fetchers import AlphaVantageFetcher, YahooFinanceFetcher, CoinMarketCapFetcher
 
-# This file must load the environment variables itself
-load_dotenv()
+# Detect if the environment is Streamlit Cloud to manage secrets properly
+try:
+    import streamlit as st
+    STREAMLIT_ENV = True
+except ImportError:
+    STREAMLIT_ENV = False
+
+# Load environment variables conditionally (only in local environment)
+if not STREAMLIT_ENV:
+    load_dotenv()
+    
+def get_secret(key: str) -> Optional[str]:
+    """
+    Purpose: Auxiliary function to retrieve a secret/environment variable.
+             Supports both local (.env via os.environ) and Streamlit Cloud (st.secrets) environments.
+    Inputs (Inputs):
+        - key (str): The name of the secret/environment variable.
+    Outputs (Outputs): The secret value as a string, or None if not found.
+    """
+    if STREAMLIT_ENV:
+        # Read from Streamlit's secrets dictionary
+        return st.secrets.get(key)
+    else:
+        # Fall back to standard OS environment (local .env)
+        return os.environ.get(key)
+
 
 def init_connection():
-    """Initializes a connection to the Supabase database."""
+    """
+    Purpose: Primary function to establish database connection.
+    Inputs (Inputs): None
+    Outputs (Outputs): A psycopg2 connection object or None if connection fails.
+    """
     try:
-        db_url = os.environ.get('SUPABASE_DB_URL')
+        # Use the unified getter function
+        db_url = get_secret('SUPABASE_DB_URL')
+        if not db_url:
+            print("Error: SUPABASE_DB_URL not found. Check .env (local) or Streamlit Secrets (cloud).")
+            return None
+            
         return psycopg2.connect(db_url)
     except Exception as e:
         print(f"Error connecting to the database: {e}")
         return None
 
 def get_data() -> pd.DataFrame:
-    """Fetches all data from the stock_prices table."""
+    """
+    Purpose: Retrieves all historical data from the stock_prices table.
+    Inputs (Inputs): None
+    Outputs (Outputs): A pandas DataFrame with all data, or an empty DataFrame on failure.
+    """
     conn = init_connection()
     if conn is None:
         return pd.DataFrame()
@@ -38,52 +108,67 @@ def get_data() -> pd.DataFrame:
         if conn:
             conn.close()
 
-def get_latest_date(symbol: str) -> Optional[datetime.date]:
-    """Fetches the latest timestamp for a given symbol from the database."""
+def get_latest_date(symbol: str) -> Optional[date]:
+    """
+    Purpose: Utility function to find the most recent timestamp for a given asset symbol.
+    Inputs (Inputs): 
+        - symbol (str): The asset symbol (e.g., 'BTC', 'MSFT').
+    Outputs (Outputs): The latest date object recorded for the symbol, or None if no data is found.
+    """
     conn = init_connection()
     if conn is None:
         return None
     try:
         with conn.cursor() as cur:
-            query = "SELECT MAX(timestamp) FROM stock_prices WHERE symbol = %s;"
-            cur.execute(query, (symbol,))
-            result = cur.fetchone()[0]
-            if result:
-                # result is already a date object, no need to call .date() again
-                return result
-            return None
+            # Fetches the latest timestamp from the database for the given symbol
+            cur.execute("SELECT MAX(timestamp) FROM stock_prices WHERE symbol = %s;", (symbol,))
+            latest_date_result = cur.fetchone()[0]
+            return latest_date_result
     except Exception as e:
-        print(f"Error fetching latest date for {symbol}: {e}")
+        # This handles errors like table not existing or connection issues
+        print(f"Error retrieving latest date for {symbol}: {e}")
         return None
     finally:
         if conn:
             conn.close()
 
 def load_data(
-    fetcher_class,
+    fetcher_class: Type,
     assets: list,
     historical: bool = False,
-    custom_start_date: Optional[date] = None, # NEW: Optional custom start date
-    custom_end_date: Optional[date] = None     # NEW: Optional custom end date
+    custom_start_date: Optional[date] = None, 
+    custom_end_date: Optional[date] = None     
 ):
     """
-    Loads data for a list of assets using a specified fetcher class.
+    Purpose: Main function for fetching data from external APIs and loading it
+             into the database. It handles both initial historical loading and
+             incremental updates, supporting custom date ranges for backfill.
+    Inputs (Inputs):
+        - fetcher_class (Type): The class to use for fetching data (e.g., AlphaVantageFetcher).
+        - assets (list): List of asset symbols (e.g., ['BTC', 'ETH']).
+        - historical (bool): Flag to force a full historical load (starting from 2005-01-01).
+        - custom_start_date (Optional[date]): Optional date to start fetching data from (overrides auto-calculation).
+        - custom_end_date (Optional[date]): Optional date to end fetching data at.
+    Outputs (Outputs): None (Data is committed directly to the database).
     """
     conn = init_connection()
     if conn is None:
         return
     
-    alpha_vantage_api_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
-    coin_market_api_key = os.environ.get('COIN_MARKET_API_KEY')
+    # Use the unified getter function for API keys
+    alpha_vantage_api_key = get_secret('ALPHA_VANTAGE_API_KEY')
+    coin_market_api_key = get_secret('COIN_MARKET_API_KEY')
 
     for symbol in assets:
+        
+        # 1. Determine the start and end dates
         if custom_start_date:
-            # If a custom start date is provided, use it, and the custom end date if available
+            # Use custom date range for targeted backfill
             start_date = custom_start_date
             end_date = custom_end_date if custom_end_date else datetime.now().date()
             print(f"Custom load for {symbol} from {start_date} to {end_date}...")
         elif historical:
-            # Historical load from 2005-01-01
+            # Historical load from the earliest possible date
             start_date = date(2005, 1, 1)
             end_date = None
             print(f"Performing initial historical load for {symbol}...")
@@ -91,47 +176,53 @@ def load_data(
             # Incremental update based on latest DB record
             latest_date = get_latest_date(symbol)
             if latest_date:
+                # Start from the day after the last recorded date
                 start_date = latest_date + timedelta(days=1)
                 end_date = datetime.now().date()
                 print(f"Updating data for {symbol} from {start_date} to {end_date}...")
             else:
+                # No data in DB, fall back to initial historical load
                 start_date = date(2005, 1, 1)
                 end_date = None
-                print(f"Performing initial historical load for {symbol}...")
+                print(f"No previous data found. Starting full historical load for {symbol}...")
 
-        # Pass the api_key if the fetcher needs it
+
+        # 2. Instantiate the fetcher
         if fetcher_class == AlphaVantageFetcher:
             if not alpha_vantage_api_key:
                 print("ALPHA_VANTAGE_API_KEY not found. Skipping Alpha Vantage assets.")
                 continue
             fetcher = fetcher_class(symbol, api_key=alpha_vantage_api_key)
+
         elif fetcher_class == CoinMarketCapFetcher:
             if not coin_market_api_key:
                 print("COIN_MARKET_API_KEY not found. Skipping CoinMarketCap assets.")
                 continue
             fetcher = fetcher_class(symbol, api_key=coin_market_api_key)
-        else:
+            
+        elif fetcher_class == YahooFinanceFetcher:
             fetcher = fetcher_class(symbol)
 
+        else:
+            print(f"No fetcher configured for {type(fetcher_class)}.")
+            continue
+
+        # 3. Fetch the data
+        df = pd.DataFrame()
         if isinstance(fetcher, AlphaVantageFetcher):
-            # AlphaVantageFetcher uses 'full' for historical (start_date is date(2005, 1, 1))
-            # or 'compact' for the latest (start_date is latest_date + 1 day).
-            # The logic here is simplified: if start_date is the historical start, use 'full'.
-            # Note: custom_start_date will still result in an API call unless it's a small range
-            # that 'compact' can cover. For AlphaVantage, we'll maintain the historical flag logic
-            # for now, as it doesn't natively support range queries like Yahoo Finance.
+            # AlphaVantage logic remains focused on full/compact output sizes
             is_full_historical = (start_date == date(2005, 1, 1)) and (not custom_start_date)
             df = fetcher.fetch_data(asset_type='stocks', historical=is_full_historical)
+
         elif isinstance(fetcher, YahooFinanceFetcher):
             # YahooFinanceFetcher supports start_date and end_date for range queries
             df = fetcher.fetch_data(start_date=start_date, end_date=end_date)
+
         elif isinstance(fetcher, CoinMarketCapFetcher):
             # CoinMarketCapFetcher only provides the latest snapshot, range is not supported
             df = fetcher.fetch_data()
-        else:
-            print(f"No fetcher configured for {type(fetcher)}.")
-            continue
         
+        # 4. Insert data
         if df.empty:
             print(f"No new data retrieved for {symbol}. Skipping insertion.")
             continue
