@@ -27,17 +27,13 @@ import modules.overview as overview
 import modules.basic_dashboard as basic_dashboard
 import modules.risk_analysis as risk_analysis
 import modules.performance_comparison as performance_comparison
-import modules.market_regimes as market_regimes
-import modules.predictive_model as predictive_model
 
 # Create a radio menu for page navigation
 page = st.sidebar.radio("Go to", [
     "Overview", 
     "Basic Dashboard", 
     "Risk Analysis", 
-    "Asset Comparison",
-    "Market Regimes",         
-    "Predictive Modeling"     
+    "Asset Comparison"  
 ])
 
 # --- PAGE LOGIC ---
@@ -65,15 +61,3 @@ elif page == "Asset Comparison":
         performance_comparison.show_page(df_raw)
     else:
         st.warning("Could not load data for asset comparison. Please check the database connection and data pipeline.")
-
-elif page == "Market Regimes":
-    if not df_raw.empty:
-        market_regimes.show_page(df_raw)
-    else:
-        st.warning("Could not load data for market regimes analysis. Please check the database connection and data pipeline.")
-
-elif page == "Predictive Modeling":
-    if not df_raw.empty:
-        predictive_model.show_page(df_raw)
-    else:
-        st.warning("Could not load data for predictive modeling. Please check the database connection and data pipeline.")

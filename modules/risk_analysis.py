@@ -80,6 +80,23 @@ def show_page(df):
     # Sort the table by Max Drawdown (from least to most risky)
     metrics_df = metrics_df.sort_values(by='Max Drawdown', ascending=True)
 
+    st.markdown("<p style='text-align: center; color: #7f8c8d;'>Explore key risk metrics like annualized volatility and max drawdown for various assets.</p>", unsafe_allow_html=True)
+
+    with st.expander("❓ Understanding the Risk Metrics"):
+        st.markdown("""
+            The table below quantifies risk and return. Assets are ordered from the least severe Max Drawdown to the worst.
+            
+            **Risk Metrics (What you can lose):**
+            - **Max Drawdown:** The maximum observed loss from a peak to a trough. **This is your worst-case historical loss.**
+            - **Volatility:** The standard deviation of returns, annualized. It measures **price uncertainty**.
+            - **VaR (95%):** Estimates the maximum daily loss that should not be exceeded 95% of the time.
+            
+            **Performance & Consistency Metrics (What you gain):**
+            - **Cumulative Return:** The total percentage gain or loss over the entire period analyzed.
+            - **Winning Days %:** The percentage of trading days that resulted in a positive return (closing higher than the previous day).
+            - **Sharpe Ratio:** Measures the excess return per unit of volatility taken. **Higher is better.**
+    """)
+
     st.subheader("Asset Risk Comparison")
     
     # Format the DataFrame columns
@@ -92,7 +109,7 @@ def show_page(df):
     display_df['Winning Days %'] = display_df['Winning Days %'].apply(lambda x: f"{x:,.2%}")
 
     # Reorder the columns for better display
-    display_df = display_df[['Asset', 'Volatility', 'Max Drawdown', 'Sharpe Ratio', 'Cumulative Return', 'VaR (95%)', 'Winning Days %']]
+    display_df = display_df[['Asset', 'Max Drawdown', 'Volatility', 'Sharpe Ratio', 'Cumulative Return', 'VaR (95%)', 'Winning Days %']]
     
     # Display the formatted DataFrame
     st.dataframe(
@@ -114,7 +131,7 @@ def show_page(df):
         y='Max Drawdown',
         color='Asset',
         size='Volatility',
-        hover_data={'Volatility': ':.2%', 'Max Drawdown': ':.2%', 'Sharpe Ratio': ':.2f', 'Cumulative Return': ':.2%'},
+        hover_data={'Volatility': ':.2%', 'Max Drawdown': ':.2%', 'Sharpe Ratio': ':.2f', 'Cumulative Return': ':,.2%'},
         title="Volatility vs. Max Drawdown by Asset"
     )
 
