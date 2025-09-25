@@ -2,18 +2,10 @@
 
 import streamlit as st
 import pandas as pd
-from dotenv import load_dotenv
-from data_loader import get_data
-
-# --- APP CONFIGURATION ---
-# Load environment variables from .env file.
-# This ensures the app can find the database connection string.
-#load_dotenv()
+from data_loader import get_data # This import is correct and sufficient
 
 # --- DATA LOADING ---
 # Use Streamlit's cache to load data only once.
-# This prevents the app from querying the database on every user interaction,
-# making it fast and efficient.
 @st.cache_data
 def load_all_data():
     """
@@ -23,7 +15,6 @@ def load_all_data():
     return df
 
 # Load the data before any page logic runs.
-# This makes the data available to all modules.
 df_raw = load_all_data()
 
 # --- PAGE SETUP ---
