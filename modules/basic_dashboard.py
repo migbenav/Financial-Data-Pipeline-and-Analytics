@@ -144,9 +144,6 @@ def show_page(df):
             color = 'black'
         return f'color: {color}'
 
-    # Create a list of the columns you want to display
-    columns_to_display = ["timestamp", "open_price", "close_price", "high_price", "low_price", "volume", "Price Change %"]
-
     # Select the desired columns FIRST, then take the head, apply the style, and display.
     columns_to_display = ["timestamp", "open_price", "close_price", "high_price", "low_price", "volume", "Price Change %"]
     styled_df = display_df[columns_to_display].head(20).style.map(color_change, subset=['Price Change %'])
