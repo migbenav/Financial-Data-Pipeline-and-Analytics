@@ -1,10 +1,10 @@
 name: Daily Data Update
 
-# This workflow runs once every day at 12:00 AM (midnight) in Peru (UTC-5)
-# which corresponds to 5:00 AM UTC.
+# This workflow runs once every day at 5:00 AM in Peru (UTC-5)
+# which corresponds to 10:00 AM UTC.
 on:
   schedule:
-    - cron: '0 5 * * *'
+    - cron: '0 10 * * *'
   workflow_dispatch:
 
 jobs:

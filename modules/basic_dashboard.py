@@ -147,9 +147,9 @@ def show_page(df):
     # Create a list of the columns you want to display
     columns_to_display = ["timestamp", "open_price", "close_price", "high_price", "low_price", "volume", "Price Change %"]
 
-    # Create a styled DataFrame by selecting only the desired columns
-    #styled_df = display_df[columns_to_display].head(20).style.applymap(color_change, subset=pd.IndexSlice[:, ['Price Change %']])
-    styled_df = display_df.head(20).style.map(color_change, subset=pd.IndexSlice[:, ['Price Change %']])
+    # Select the desired columns FIRST, then take the head, apply the style, and display.
+    columns_to_display = ["timestamp", "open_price", "close_price", "high_price", "low_price", "volume", "Price Change %"]
+    styled_df = display_df[columns_to_display].head(20).style.map(color_change, subset=['Price Change %'])
     st.dataframe(styled_df, width='stretch', hide_index=True)
         
     # Subheader for the plot
