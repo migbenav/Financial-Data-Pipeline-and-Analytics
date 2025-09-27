@@ -1,0 +1,19 @@
+# keep_alive.yml
+name: Keep Streamlit App Awake
+
+on:
+  schedule:
+    # Runs every 6 hours. You can adjust the cron expression.
+    # CRON format: minute hour day-of-month month day-of-week
+    - cron: '0 */6 * * *' 
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
+
+jobs:
+  ping_app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send request to Streamlit App
+        # Replace 'YOUR_STREAMLIT_APP_URL' with the actual URL of your app
+        run: |
+          echo "Pinging Streamlit app at ${{ secrets.STREAMLIT_URL }}"
+          curl -s -o /dev/null -w "%{http_code}\n" ${{ secrets.STREAMLIT_URL }}
