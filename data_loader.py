@@ -152,6 +152,8 @@ def load_data(
     Purpose: Main function for fetching data from external APIs and loading it
              into the database. It handles both initial historical loading and
              incremental updates, supporting custom date ranges for backfill.
+             Includes local filtering for fetchers (like AlphaVantage) that
+             return more data than requested for incremental updates.
     Inputs (Inputs):
         - fetcher_class (Type): The class to use for fetching data (e.g., AlphaVantageFetcher).
         - assets (list): List of asset symbols (e.g., ['BTC', 'ETH']).
@@ -170,33 +172,39 @@ def load_data(
 
     for symbol in assets:
         
-        # 1. Determine the start and end dates
+        # --- 1. Determine the start, end, and filter dates ---
+        
+        filter_date = None
+        latest_date_db = get_latest_date(symbol)
+        
         if custom_start_date:
-            # Use custom date range for targeted backfill
+            # Mode: Custom load for targeted backfill
             start_date = custom_start_date
             end_date = custom_end_date if custom_end_date else datetime.now().date()
             print(f"Custom load for {symbol} from {start_date} to {end_date}...")
-        elif historical:
-            # Historical load from the earliest possible date
+            
+        elif historical or not latest_date_db:
+            # Mode: Full historical load (forced or no data found)
             start_date = date(2005, 1, 1)
             end_date = None
-            print(f"Performing initial historical load for {symbol}...")
-        else:
-            # Incremental update based on latest DB record
-            latest_date = get_latest_date(symbol)
-            if latest_date:
-                # Start from the day after the last recorded date
-                start_date = latest_date + timedelta(days=1)
-                end_date = datetime.now().date()
-                print(f"Updating data for {symbol} from {start_date} to {end_date}...")
+            if historical:
+                print(f"Performing initial historical load (forced) for {symbol}...")
             else:
-                # No data in DB, fall back to initial historical load
-                start_date = date(2005, 1, 1)
-                end_date = None
                 print(f"No previous data found. Starting full historical load for {symbol}...")
+                
+        else:
+            # Mode: Incremental update based on latest DB record
+            # filter_date will be used to discard existing records returned by the API
+            filter_date = latest_date_db
+            
+            # Start fetching from the day after the last recorded date
+            start_date = latest_date_db + timedelta(days=1)
+            end_date = datetime.now().date()
+            print(f"Updating data for {symbol} from {start_date} to {end_date} (Latest in DB: {latest_date_db})...")
 
 
-        # 2. Instantiate the fetcher
+        # --- 2. Instantiate the fetcher ---
+        
         if fetcher_class == AlphaVantageFetcher:
             if not alpha_vantage_api_key:
                 print("ALPHA_VANTAGE_API_KEY not found. Skipping Alpha Vantage assets.")
@@ -213,27 +221,48 @@ def load_data(
             fetcher = fetcher_class(symbol)
 
         else:
-            print(f"No fetcher configured for {type(fetcher_class)}.")
+            print(f"No fetcher configured for {fetcher_class.__name__}.")
             continue
 
-        # 3. Fetch the data
+        
+        # --- 3. Fetch the data ---
+        
         df = pd.DataFrame()
         if isinstance(fetcher, AlphaVantageFetcher):
-            # AlphaVantage logic remains focused on full/compact output sizes
-            is_full_historical = (start_date == date(2005, 1, 1)) and (not custom_start_date)
-            df = fetcher.fetch_data(asset_type='stocks', historical=is_full_historical)
+            # AlphaVantage logic remains focused on full/compact output sizes.
+            # If we're updating, we rely on 'compact' (latest ~100 days),
+            # which requires post-fetch filtering (using filter_date).
+            is_full_historical_av = (start_date == date(2005, 1, 1)) and (not custom_start_date)
+            df = fetcher.fetch_data(asset_type='stocks', historical=is_full_historical_av)
 
         elif isinstance(fetcher, YahooFinanceFetcher):
-            # YahooFinanceFetcher supports start_date and end_date for range queries
+            # YahooFinanceFetcher supports start_date and end_date for range queries,
+            # so the data returned should already be filtered.
             df = fetcher.fetch_data(start_date=start_date, end_date=end_date)
 
         elif isinstance(fetcher, CoinMarketCapFetcher):
-            # CoinMarketCapFetcher only provides the latest snapshot, range is not supported
+            # CoinMarketCapFetcher only provides the latest snapshot.
             df = fetcher.fetch_data()
+            
+            
+        # --- 3.5. Local Filtering for Incremental Updates (Crucial Fix) ---
+        if not df.empty and filter_date:
+            original_size = len(df)
+            
+            # Convert timestamp column to date object for comparison
+            df['timestamp'] = pd.to_datetime(df['timestamp']).dt.date
+            
+            # Filter the DataFrame to keep only records strictly newer than the latest DB date
+            df = df[df['timestamp'] > filter_date]
+            
+            if len(df) < original_size:
+                print(f"Filtered {original_size - len(df)} redundant records for {symbol} using local date filter.")
+
+
+        # --- 4. Insert data ---
         
-        # 4. Insert data
         if df.empty:
-            print(f"No new data retrieved for {symbol}. Skipping insertion.")
+            print(f"No new data retrieved for {symbol} within the target range. Skipping insertion.")
             continue
 
         data_to_insert = [
