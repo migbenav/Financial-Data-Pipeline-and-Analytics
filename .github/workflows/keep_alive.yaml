@@ -16,4 +16,4 @@ jobs:
         # Replace 'YOUR_STREAMLIT_APP_URL' with the actual URL of your app
         run: |
           echo "Pinging Streamlit app at ${{ secrets.STREAMLIT_URL }}"
-          curl -s -o /dev/null -w "%{http_code}\n" ${{ secrets.STREAMLIT_URL }}
+          curl -s -o /dev/null -w "%{http_code}\n" -L ${{ secrets.STREAMLIT_URL }}
