@@ -12,8 +12,13 @@ jobs:
   ping_app:
     runs-on: ubuntu-latest
     steps:
-      - name: Send request to Streamlit App
+      - name: Send request to Streamlit App and Follow Redirects
+        # -L: Follows redirects (303). This is essential.
+        # -s: Silent mode (hides progress meters/error messages).
+        # -o /dev/null: Discards the response body.
+        # -w "%{http_code}\n": Only writes the HTTP status code.
+        # --fail-with-body: Ensures curl exits with 0 even if it receives an unexpected response
         # Replace 'YOUR_STREAMLIT_APP_URL' with the actual URL of your app
         run: |
           echo "Pinging Streamlit app at ${{ secrets.STREAMLIT_URL }}"
-          curl -s -o /dev/null -w "%{http_code}\n" -L ${{ secrets.STREAMLIT_URL }}
+          curl -L -s -o /dev/null -w "HTTP Status: %{http_code}\n" --fail-with-body ${{ secrets.STREAMLIT_URL }}
