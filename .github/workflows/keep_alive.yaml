@@ -1,24 +1,36 @@
-# keep_alive.yml
-name: Keep Streamlit App Awake
+# .github/workflows/keep_alive.yml
 
+name: Streamlit Keep Alive
 on:
   schedule:
-    # Runs every 6 hours. You can adjust the cron expression.
-    # CRON format: minute hour day-of-month month day-of-week
-    - cron: '0 */6 * * *' 
-  workflow_dispatch: # Allows manual triggering from the GitHub UI
+    # Runs every 6 hours (adjust as needed to prevent sleep mode)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    # Allows manual running from the Actions tab
 
 jobs:
   ping_app:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Send request to Streamlit App and Follow Redirects
-        # -L: Follows redirects (303). This is essential.
-        # -s: Silent mode (hides progress meters/error messages).
-        # -o /dev/null: Discards the response body.
-        # -w "%{http_code}\n": Only writes the HTTP status code.
-        # --fail-with-body: Ensures curl exits with 0 even if it receives an unexpected response
-        # Replace 'YOUR_STREAMLIT_APP_URL' with the actual URL of your app
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
         run: |
-          echo "Pinging Streamlit app at ${{ secrets.STREAMLIT_URL }}"
-          curl -L -s -o /dev/null -w "HTTP Status: %{http_code}\n" --fail-with-body ${{ secrets.STREAMLIT_URL }}
+          # Install the necessary libraries for browser simulation
+          pip install selenium webdriver-manager
+          # Install Chrome, which is needed by the driver manager
+          sudo apt-get update && sudo apt-get install -y google-chrome-stable
+
+      - name: Run Headless Browser to Wake Up Streamlit App
+        # Set the STREAMLIT_URL as an environment variable for the script
+        env:
+          STREAMLIT_URL: ${{ secrets.STREAMLIT_URL }}
+        run: |
+          python wake_up.py
