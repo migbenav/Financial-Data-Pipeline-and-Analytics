@@ -5,17 +5,23 @@ import pandas as pd
 from data_loader import get_data # This import is correct and sufficient
 
 # --- DATA LOADING ---
-# Use Streamlit's cache to load data only once.
-@st.cache_data
+# Use Streamlit's cache to load data. 
+# Set 'ttl' to 86400 seconds, which is 24 hours (60 * 60 * 24).
+# This ensures the database is queried only once per day per app run, 
+# improving performance and reducing API calls to Supabase.
+@st.cache_data(ttl=86400) 
+
 def load_all_data():
     """
     Loads all data from the database using the get_data function.
+    This function will only re-run after 24 hours have passed since the last run.
     """
-    df = get_data()
+    df = get_data() 
     return df
 
 # Load the data before any page logic runs.
 df_raw = load_all_data()
+
 
 # --- PAGE SETUP ---
 st.set_page_config(layout="wide", page_title="Financial Data Dashboard")
@@ -35,6 +41,21 @@ page = st.sidebar.radio("Go to", [
     "Risk Analysis", 
     "Asset Comparison"  
 ])
+
+
+# --- CACHE CONTROL (Manual Data Refresh Button) ---
+st.sidebar.markdown("---")
+st.sidebar.header("Data Control")
+
+# Button to manually force data refresh, overriding the 24-hour cache.
+if st.sidebar.button("Force Data Refresh 🔄"):
+    # 1. Clear the cache for the specific data loading function
+    load_all_data.clear() 
+    
+    # 2. Force a script re-run to load the fresh data from Supabase
+    st.rerun() 
+    st.sidebar.success("Data successfully refreshed!")
+
 
 # --- PAGE LOGIC ---
 # Display the selected page based on user input
