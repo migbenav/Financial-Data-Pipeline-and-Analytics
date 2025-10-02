@@ -105,7 +105,7 @@ To run this dashboard locally and manage the data pipeline, you must complete th
     * The function `load_data` in `data_loader.py` handles the logic to determine which dates are missing.
     * Run the following script once to perform the **initial historical data load**. 
         ```bash
-        python backfill_missing_data.py
+        python load_data.py
         ```
 
 ---
