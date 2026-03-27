@@ -1,17 +1,19 @@
-# .github/workflows/keep_alive.yml
-
 name: Streamlit Keep Alive
+
 on:
   schedule:
-    # Runs every 6 hours (adjust as needed to prevent sleep mode)
+    # Corre cada 6 horas
     - cron: '0 */6 * * *'
   workflow_dispatch:
-    # Allows manual running from the Actions tab
 
 jobs:
   ping_app:
     runs-on: ubuntu-latest
     
+    # Solución al aviso de Node.js 20
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,13 +25,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # Install the necessary libraries for browser simulation
           pip install selenium webdriver-manager
-          # Install Chrome, which is needed by the driver manager
           sudo apt-get update && sudo apt-get install -y google-chrome-stable
 
       - name: Run Headless Browser to Wake Up Streamlit App
-        # Set the STREAMLIT_URL as an environment variable for the script
         env:
           STREAMLIT_URL: ${{ secrets.STREAMLIT_URL }}
         run: |
