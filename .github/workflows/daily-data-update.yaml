@@ -1,9 +1,8 @@
 name: Daily Data Update
 
-# This workflow runs once every day at 5:00 AM in Peru (UTC-5)
-# which corresponds to 10:00 AM UTC.
 on:
   schedule:
+    # Corre a las 5:00 AM de Perú (10:00 AM UTC)
     - cron: '0 10 * * *'
   workflow_dispatch:
 
@@ -13,22 +12,25 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        # De v3 a v4
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        # De v4 a v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          # TIP: setup-python@v5 ya tiene cache integrado, podrías simplificarlo luego
+          cache: 'pip' 
 
-      # ----- NEW STEP: CACHING -----
       - name: Cache Python dependencies
-        uses: actions/cache@v3
+        # De v3 a v4
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-      # ---------------------------------
 
       - name: Install dependencies
         run: |
