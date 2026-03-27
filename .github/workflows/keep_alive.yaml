@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install selenium webdriver-manager
-          sudo apt-get update && sudo apt-get install -y google-chrome-stable
+          #sudo apt-get update && sudo apt-get install -y google-chrome-stable
 
       - name: Run Headless Browser to Wake Up Streamlit App
         env:
